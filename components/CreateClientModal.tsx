@@ -1,24 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { ref, push } from 'firebase/database';
+import { db } from '@/lib/firebase';
 
-interface Client {
-  id: string;
-  name: string;
-  driveFolder?: string;
-  plan?: string;
-  price?: number;
-  status?: 'sin-pago' | 'pagado' | 'pendiente';
-  paymentDate?: string;
-  createdAt?: number;
-  blocked?: boolean;
-}
-
-interface EditClientModalProps {
-  client: Client | null;
+interface CreateClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (client: Client) => void;
 }
 
 interface FormData {
@@ -30,35 +18,19 @@ interface FormData {
   paymentDate: string;
 }
 
-export default function EditClientModal({
-  client,
-  isOpen,
-  onClose,
-  onSave,
-}: EditClientModalProps) {
+export default function CreateClientModal({ isOpen, onClose }: CreateClientModalProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     driveFolder: '',
     plan: 'Estándar',
-    price: 0,
+    price: 499,
     status: 'sin-pago',
     paymentDate: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (client) {
-      setFormData({
-        name: client.name || '',
-        driveFolder: client.driveFolder || '',
-        plan: client.plan || 'Estándar',
-        price: client.price || 0,
-        status: client.status || 'sin-pago',
-        paymentDate: client.paymentDate || '',
-      });
-    }
-  }, [client]);
-
-  if (!isOpen || !client) return null;
+  if (!isOpen) return null;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -70,20 +42,47 @@ export default function EditClientModal({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      id: client.id,
-      ...formData,
-      createdAt: client.createdAt || Date.now(),
-    });
+    setError('');
+    setLoading(true);
+
+    if (!formData.name.trim()) {
+      setError('El nombre es obligatorio');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (!db) throw new Error('Firebase no inicializado');
+
+      const clientsRef = ref(db, 'clients');
+      await push(clientsRef, {
+        ...formData,
+        createdAt: Date.now(),
+      });
+
+      setFormData({
+        name: '',
+        driveFolder: '',
+        plan: 'Estándar',
+        price: 499,
+        status: 'sin-pago',
+        paymentDate: '',
+      });
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Error al crear cliente');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">
-          Editar Cliente
+          Crear Nuevo Cliente
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,7 +96,8 @@ export default function EditClientModal({
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+              disabled={loading}
+              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:opacity-50"
             />
           </div>
 
@@ -108,10 +108,11 @@ export default function EditClientModal({
             <input
               type="text"
               name="driveFolder"
-              placeholder="ID de la carpeta (ej: 1A2B3C...)"
+              placeholder="ID de la carpeta"
               value={formData.driveFolder}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm"
+              disabled={loading}
+              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm disabled:opacity-50"
             />
           </div>
 
@@ -124,7 +125,8 @@ export default function EditClientModal({
                 name="plan"
                 value={formData.plan}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                disabled={loading}
+                className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:opacity-50"
               >
                 <option value="Básico">Básico</option>
                 <option value="Estándar">Estándar</option>
@@ -141,9 +143,10 @@ export default function EditClientModal({
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
+                disabled={loading}
                 min="0"
                 step="10"
-                className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+                className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:opacity-50"
               />
             </div>
           </div>
@@ -156,7 +159,8 @@ export default function EditClientModal({
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+              disabled={loading}
+              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:opacity-50"
             >
               <option value="sin-pago">Sin pago</option>
               <option value="pendiente">Pendiente</option>
@@ -173,21 +177,30 @@ export default function EditClientModal({
               name="paymentDate"
               value={formData.paymentDate}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+              disabled={loading}
+              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:opacity-50"
             />
           </div>
+
+          {error && (
+            <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-200 text-sm">
+              {error}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition-colors"
+              disabled={loading}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
             >
-              Guardar
+              {loading ? 'Creando...' : 'Crear Cliente'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-zinc-200 dark:bg-slate-700 hover:bg-zinc-300 dark:hover:bg-slate-600 text-zinc-900 dark:text-white font-medium py-2 rounded-lg transition-colors"
+              disabled={loading}
+              className="flex-1 bg-zinc-200 dark:bg-slate-700 hover:bg-zinc-300 dark:hover:bg-slate-600 text-zinc-900 dark:text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
