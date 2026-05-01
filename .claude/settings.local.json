@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(taskkill /PID 7040 /F)",
-      "PowerShell(Stop-Process -Id 7040 -Force)"
+      "PowerShell(Stop-Process -Id 7040 -Force)",
+      "Bash(curl -s http://localhost:3000/login)"
     ]
   }
 }
