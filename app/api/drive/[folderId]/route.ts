@@ -53,20 +53,65 @@ export async function GET(
 
     const drive = google.drive({ version: 'v3', auth });
 
-    // List files in folder, sorted by modification date (newest first)
+    // List files in folder and all subfolders
+    // We search for audio files that have this folder as a parent
     const response = await drive.files.list({
-      q: `'${folderId}' in parents and trashed=false and (mimeType='audio/mpeg' or mimeType='audio/wav' or mimeType='audio/ogg' or mimeType='audio/mp4')`,
+      q: `'${folderId}' in parents and trashed=false`,
       spaces: 'drive',
-      fields: 'files(id, name, modifiedTime)',
-      pageSize: 100,
+      fields: 'files(id, name, mimeType, modifiedTime)',
+      pageSize: 500,
       orderBy: 'modifiedTime desc',
     });
 
-    const files: DriveFile[] = (response.data.files || []).map((file) => ({
-      id: file.id || '',
-      name: file.name || 'Unknown',
-      modifiedTime: file.modifiedTime || new Date().toISOString(),
-    }));
+    // Filter to only audio files, but also recursively get files from folders
+    let files: DriveFile[] = [];
+    const audioMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
+
+    // Add direct audio files
+    (response.data.files || []).forEach((file) => {
+      if (audioMimeTypes.includes(file.mimeType || '')) {
+        files.push({
+          id: file.id || '',
+          name: file.name || 'Unknown',
+          modifiedTime: file.modifiedTime || new Date().toISOString(),
+        });
+      }
+    });
+
+    // For subfolders, get their contents
+    const subfolders = (response.data.files || []).filter(
+      (f) => f.mimeType === 'application/vnd.google-apps.folder'
+    );
+
+    for (const subfolder of subfolders) {
+      if (!subfolder.id) continue;
+      try {
+        const subResponse = await drive.files.list({
+          q: `'${subfolder.id}' in parents and trashed=false`,
+          spaces: 'drive',
+          fields: 'files(id, name, mimeType, modifiedTime)',
+          pageSize: 500,
+        });
+
+        (subResponse.data.files || []).forEach((file) => {
+          if (audioMimeTypes.includes(file.mimeType || '')) {
+            files.push({
+              id: file.id || '',
+              name: file.name || 'Unknown',
+              modifiedTime: file.modifiedTime || new Date().toISOString(),
+            });
+          }
+        });
+      } catch (e) {
+        // Skip folders that fail
+        console.warn(`Could not list subfolder ${subfolder.id}:`, String(e));
+      }
+    }
+
+    // Sort all files by modification time (newest first)
+    files.sort((a, b) =>
+      new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime()
+    );
 
     return NextResponse.json({ files });
   } catch (error) {

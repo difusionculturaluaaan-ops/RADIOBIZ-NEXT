@@ -36,7 +36,7 @@ export function useAudioPlayer(client: Client) {
 
   const adTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  let jingleIndex = 0;
+  const jingleIndexRef = useRef(0);
 
   // Cargar música según sourceMode
   const loadMusic = useCallback(async () => {
@@ -119,7 +119,7 @@ export function useAudioPlayer(client: Client) {
   const playAd = useCallback(async () => {
     if (jingles.length === 0) return;
 
-    const jingle = jingles[jingleIndex % jingles.length];
+    const jingle = jingles[jingleIndexRef.current % jingles.length];
     if (!adRef.current) return;
 
     fadeOut(() => {
@@ -129,12 +129,12 @@ export function useAudioPlayer(client: Client) {
       if (adRef.current) {
         adRef.current.src = `/api/drive/stream/${jingle.id}`;
         adRef.current.volume = volume / 100;
-        adRef.current.play();
+        adRef.current.play().catch(() => {});
         setAdPlaying(true);
       }
     });
 
-    jingleIndex = (jingleIndex + 1) % jingles.length;
+    jingleIndexRef.current = (jingleIndexRef.current + 1) % jingles.length;
   }, [jingles, volume, fadeOut]);
 
   // Programar anuncio
@@ -180,7 +180,7 @@ export function useAudioPlayer(client: Client) {
       if (adTimerRef.current) clearTimeout(adTimerRef.current);
     } else {
       loadMusic();
-      musicRef.current.play();
+      musicRef.current.play().catch(() => {});
       setPlaying(true);
       scheduleAd();
     }
@@ -196,6 +196,13 @@ export function useAudioPlayer(client: Client) {
       wakeLockRef.current?.release();
     }
   }, [playing]);
+
+  // Update volume on musicRef
+  useEffect(() => {
+    if (musicRef.current) {
+      musicRef.current.volume = volume / 100;
+    }
+  }, [volume]);
 
   // Track progress and metadata
   useEffect(() => {

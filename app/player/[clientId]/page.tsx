@@ -32,6 +32,11 @@ export default function PlayerPage() {
   useEffect(() => {
     const loadClient = async () => {
       try {
+        if (!db) {
+          setError('Firebase no inicializado');
+          setLoading(false);
+          return;
+        }
         const snapshot = await get(ref(db, `clients/${clientId}`));
         if (snapshot.exists()) {
           setClient(snapshot.val());
@@ -120,7 +125,7 @@ function PlayerContent({ client }: { client: Client }) {
 
   // Session management and remote commands
   useEffect(() => {
-    if (!clientId) return;
+    if (!clientId || !db) return;
 
     const sessionId = `s_${clientId}_${Date.now()}`;
     const sessionRef = ref(db, `sessions/${sessionId}`);
@@ -136,7 +141,7 @@ function PlayerContent({ client }: { client: Client }) {
 
     // Ping every 30 seconds to keep session alive
     const pingInterval = setInterval(() => {
-      set(ref(db, `sessions/${sessionId}/lastPing`), Date.now());
+      if (db) set(ref(db, `sessions/${sessionId}/lastPing`), Date.now());
     }, 30000);
 
     // Listen for remote commands
