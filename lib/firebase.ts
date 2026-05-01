@@ -1,23 +1,22 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase, Database } from 'firebase/database';
 import { getAuth, Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDgE9XssX6VT1SxQuDzR-FOnq4S7FE3Zcw",
-  authDomain: "proradiobiz.firebaseapp.com",
-  databaseURL: "https://proradiobiz-default-rtdb.firebaseio.com",
-  projectId: "proradiobiz",
-  storageBucket: "proradiobiz.firebasestorage.app",
-  messagingSenderId: "601173283890",
-  appId: "1:601173283890:web:ee0af646f3b06e3878d82b"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-let app;
-let db: Database;
-let auth: Auth;
+let db: Database | undefined;
+let auth: Auth | undefined;
 
 if (typeof window !== 'undefined') {
-  app = initializeApp(firebaseConfig);
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   db = getDatabase(app);
   auth = getAuth(app);
 }
