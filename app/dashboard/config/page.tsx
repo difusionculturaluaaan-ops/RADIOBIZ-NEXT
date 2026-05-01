@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { ref, onValue, remove, query, orderByChild, limitToFirst } from 'firebase/database';
+import { ref, onValue, remove } from 'firebase/database';
 import { auth, db } from '@/lib/firebase';
 
 interface Session {
@@ -51,7 +51,7 @@ export default function ConfigPage() {
         await signOut(auth);
         router.push('/login');
       }
-    } catch (error) {
+    } catch {
       setFeedback('Error al cerrar sesión');
     } finally {
       setLoading(false);
@@ -84,7 +84,7 @@ export default function ConfigPage() {
         setFeedback(`✓ Se eliminaron ${deletedCount} sesiones viejas`);
         setTimeout(() => setFeedback(''), 3000);
       }
-    } catch (error) {
+    } catch {
       setFeedback('✗ Error al limpiar sesiones');
     } finally {
       setLoading(false);
@@ -104,7 +104,7 @@ export default function ConfigPage() {
       await remove(clientsRef);
       setFeedback('✓ Todos los clientes han sido eliminados');
       setTimeout(() => setFeedback(''), 3000);
-    } catch (error) {
+    } catch {
       setFeedback('✗ Error al eliminar clientes');
     } finally {
       setLoading(false);

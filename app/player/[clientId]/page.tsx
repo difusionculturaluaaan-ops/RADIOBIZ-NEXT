@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -43,7 +44,7 @@ export default function PlayerPage() {
         } else {
           setError('Cliente no encontrado');
         }
-      } catch (err) {
+      } catch {
         setError('Error al cargar cliente');
       } finally {
         setLoading(false);

@@ -41,7 +41,7 @@ export async function GET(
     };
 
     const auth = new google.auth.GoogleAuth({
-      credentials: credentials as any,
+      credentials,
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
 
@@ -73,7 +73,7 @@ export async function GET(
     }
 
     // Return the stream as response
-    return new NextResponse(response.data as any, {
+    return new NextResponse(response.data as unknown as BodyInit, {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600',

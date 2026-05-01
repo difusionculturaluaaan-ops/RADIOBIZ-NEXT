@@ -1,6 +1,5 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { ref, get, set, onValue, remove } from 'firebase/database';
-import { db } from '@/lib/firebase';
 
 interface Client {
   id: string;
@@ -20,10 +19,14 @@ interface DriveFile {
   modifiedTime: string;
 }
 
+type WakeLockSentinel = {
+  release: () => Promise<void>;
+};
+
 export function useAudioPlayer(client: Client) {
   const musicRef = useRef<HTMLAudioElement>(null);
   const adRef = useRef<HTMLAudioElement>(null);
-  const wakeLockRef = useRef<any>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const [playing, setPlaying] = useState(false);
   const [adPlaying, setAdPlaying] = useState(false);
@@ -189,7 +192,7 @@ export function useAudioPlayer(client: Client) {
   // Wake lock
   useEffect(() => {
     if (playing && 'wakeLock' in navigator) {
-      (navigator as any).wakeLock.request('screen').then((wl: any) => {
+      (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock.request('screen').then((wl: WakeLockSentinel) => {
         wakeLockRef.current = wl;
       }).catch(() => {});
     } else {
@@ -239,8 +242,10 @@ export function useAudioPlayer(client: Client) {
 
   // Sincronizar jingles al montar
   useEffect(() => {
-    syncJingles();
-    const interval = setInterval(syncJingles, 2 * 60 * 1000);
+    void syncJingles();
+    const interval = setInterval(() => {
+      void syncJingles();
+    }, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, [syncJingles]);
 

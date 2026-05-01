@@ -71,8 +71,9 @@ export default function CreateClientModal({ isOpen, onClose }: CreateClientModal
         paymentDate: '',
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Error al crear cliente');
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setError(error.message || 'Error al crear cliente');
     } finally {
       setLoading(false);
     }

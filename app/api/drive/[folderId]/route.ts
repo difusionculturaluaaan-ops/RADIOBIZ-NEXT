@@ -47,7 +47,7 @@ export async function GET(
     };
 
     const auth = new google.auth.GoogleAuth({
-      credentials: credentials as any,
+      credentials,
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
 
@@ -64,8 +64,8 @@ export async function GET(
     });
 
     // Filter to only audio files, but also recursively get files from folders
-    let files: DriveFile[] = [];
     const audioMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'];
+    const files: DriveFile[] = [];
 
     // Add direct audio files
     (response.data.files || []).forEach((file) => {

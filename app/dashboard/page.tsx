@@ -37,7 +37,7 @@ export default function Dashboard() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data).map(([id, clientData]: [string, any]) => ({
+          const clientList = Object.entries(data).map(([id, clientData]: [string, Record<string, unknown>]) => ({
             id,
             name: clientData.name || 'Sin nombre',
             driveFolder: clientData.driveFolder || '',
@@ -173,19 +173,22 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {clients.map((client) => (
-              <ClientCard
-                key={client.id}
-                id={client.id}
-                name={client.name}
-                date={new Date(client.createdAt || Date.now()).toLocaleDateString('es-ES')}
-                plan={client.plan || 'Estándar'}
-                price={String(client.price || 0)}
-                status={client.status || 'sin-pago'}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
+            {clients.map((client) => {
+              const clientDate = client.createdAt ? new Date(client.createdAt).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
+              return (
+                <ClientCard
+                  key={client.id}
+                  id={client.id}
+                  name={client.name}
+                  date={clientDate}
+                  plan={client.plan || 'Estándar'}
+                  price={String(client.price || 0)}
+                  status={client.status || 'sin-pago'}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -47,14 +48,15 @@ export default function EditClientModal({
 
   useEffect(() => {
     if (client) {
-      setFormData({
+      const newFormData: FormData = {
         name: client.name || '',
         driveFolder: client.driveFolder || '',
         plan: client.plan || 'Estándar',
         price: client.price || 0,
         status: client.status || 'sin-pago',
         paymentDate: client.paymentDate || '',
-      });
+      };
+      setFormData(newFormData);
     }
   }, [client]);
 

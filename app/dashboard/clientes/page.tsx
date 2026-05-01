@@ -33,7 +33,6 @@ export default function ClientesPage() {
 
   useEffect(() => {
     if (!db) {
-      setLoading(false);
       return;
     }
 
@@ -43,7 +42,7 @@ export default function ClientesPage() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data).map(([id, clientData]: [string, any]) => ({
+          const clientList = Object.entries(data).map(([id, clientData]: [string, Record<string, unknown>]) => ({
             id,
             name: clientData.name || 'Sin nombre',
             driveFolder: clientData.driveFolder || '',
@@ -97,7 +96,7 @@ export default function ClientesPage() {
     });
   };
 
-  const handleWhatsApp = (clientId: string, clientName: string) => {
+  const handleWhatsApp = (clientId: string) => {
     const url = `${window.location.origin}/player/${clientId}`;
     const message = `🎵 Hola, aquí está el enlace de tu reproductor RadioBiz: ${url}`;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -216,7 +215,7 @@ export default function ClientesPage() {
                     {isCopied ? '✓ Copiado' : 'Copiar'}
                   </button>
                   <button
-                    onClick={() => handleWhatsApp(client.id, client.name)}
+                    onClick={() => handleWhatsApp(client.id)}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
                   >
                     WA

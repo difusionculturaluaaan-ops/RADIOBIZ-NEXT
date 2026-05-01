@@ -29,7 +29,7 @@ export default function Sidebar() {
         if (data) {
           setClientCount(Object.keys(data).length);
           const pendingPayments = Object.values(data).filter(
-            (client: any) => client.status !== 'pagado'
+            (client: unknown) => (client as Record<string, unknown>).status !== 'pagado'
           ).length;
           setPaymentCount(pendingPayments);
         } else {

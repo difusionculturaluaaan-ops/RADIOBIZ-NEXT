@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ref, onValue, set, remove } from 'firebase/database';
+import { ref, onValue, set } from 'firebase/database';
 import { db } from '@/lib/firebase';
 
 interface Client {
@@ -28,7 +28,6 @@ export default function ControlRemotoPage() {
   // Load clients from Firebase
   useEffect(() => {
     if (!db) {
-      setLoading(false);
       return;
     }
 
@@ -38,7 +37,7 @@ export default function ControlRemotoPage() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data).map(([id, clientData]: [string, any]) => ({
+          const clientList = Object.entries(data).map(([id, clientData]: [string, Record<string, unknown>]) => ({
             id,
             name: clientData.name || 'Sin nombre',
             blocked: clientData.blocked || false,
@@ -58,7 +57,7 @@ export default function ControlRemotoPage() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [selectedClientId]);
 
   // Load sessions for selected client
   useEffect(() => {
@@ -69,7 +68,7 @@ export default function ControlRemotoPage() {
       const data = snapshot.val();
       if (data) {
         const clientSessions = Object.values(data).filter(
-          (session: any) => session.clientId === selectedClientId
+          (session: unknown) => (session as Partial<Session>).clientId === selectedClientId
         ) as Session[];
         setSessions(clientSessions);
       } else {
@@ -80,7 +79,7 @@ export default function ControlRemotoPage() {
     return () => unsubscribe();
   }, [selectedClientId]);
 
-  const sendCommand = async (action: string, value?: any) => {
+  const sendCommand = async (action: string, value?: unknown) => {
     if (!db || !selectedClientId) return;
 
     try {
@@ -92,7 +91,7 @@ export default function ControlRemotoPage() {
       });
       setCommandFeedback(`✓ Comando enviado: ${action}`);
       setTimeout(() => setCommandFeedback(''), 2000);
-    } catch (error) {
+    } catch {
       setCommandFeedback('✗ Error al enviar comando');
     }
   };
@@ -118,7 +117,7 @@ export default function ControlRemotoPage() {
         await set(clientRef, !(currentClient.blocked || false));
         setCommandFeedback(`✓ Cliente ${!(currentClient.blocked || false) ? 'bloqueado' : 'desbloqueado'}`);
         setTimeout(() => setCommandFeedback(''), 2000);
-      } catch (error) {
+      } catch {
         setCommandFeedback('✗ Error al bloquear cliente');
       }
     }

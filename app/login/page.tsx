@@ -22,8 +22,9 @@ export default function LoginPage() {
       if (!auth) throw new Error('Firebase no inicializado');
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
-    } catch (err: any) {
-      const message = err?.code === 'auth/invalid-credential'
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string };
+      const message = firebaseError?.code === 'auth/invalid-credential'
         ? 'Email o contraseña incorrectos'
         : 'Error al iniciar sesión';
       setError(message);
