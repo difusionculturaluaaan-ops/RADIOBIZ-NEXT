@@ -9,6 +9,8 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import PinScreen from '@/components/PinScreen';
 import PlayerCard from '@/components/PlayerCard';
 import MusicTabs from '@/components/MusicTabs';
+import JingleQueue from '@/components/JingleQueue';
+import StatsPanel from '@/components/StatsPanel';
 
 interface Client {
   id: string;
@@ -215,68 +217,76 @@ function PlayerContent({ client }: { client: Client }) {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            {/* Player Card */}
-            <PlayerCard
-              trackName={player.currentTrack.name}
-              trackSource={player.currentTrack.source}
-              playing={player.playing}
-              progress={player.progress}
-              currentTime={player.currentTime}
-              duration={player.duration}
-              musicVolume={player.musicVolume}
-              adVolume={player.adVolume}
-              adPlaying={player.adPlaying}
-              nextAdCountdown={player.nextAdSecs}
-              onPlayPause={player.togglePlay}
-              onPrevious={player.previousTrack}
-              onNext={player.nextTrack}
-              onMusicVolumeChange={player.setMusicVolume}
-              onAdVolumeChange={player.setAdVolume}
-              onForceAd={player.playAd}
-              isFading={player.isFading}
-            />
-
-            {/* Music Tabs */}
-            <div>
-              <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <span>🎧 Música</span>
-              </h2>
-              <MusicTabs
-                onSelectMp3={(file) => {
-                  const url = URL.createObjectURL(file);
-                  if (player.musicRef.current) {
-                    player.musicRef.current.src = url;
-                  }
-                }}
-                onSelectRadio={(url, name) => {
-                  if (player.musicRef.current) {
-                    player.musicRef.current.src = url;
-                  }
-                }}
-                onSelectDrive={(fileId) => {
-                  if (player.musicRef.current) {
-                    player.musicRef.current.src = `/api/drive/stream/${fileId}`;
-                  }
-                }}
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 h-full">
+            {/* Left Column - Player */}
+            <div className="lg:col-span-2 space-y-6 overflow-y-auto pr-3">
+              {/* Player Card */}
+              <PlayerCard
+                trackName={player.currentTrack.name}
+                trackSource={player.currentTrack.source}
+                playing={player.playing}
+                progress={player.progress}
+                currentTime={player.currentTime}
+                duration={player.duration}
+                musicVolume={player.musicVolume}
+                adVolume={player.adVolume}
+                adPlaying={player.adPlaying}
+                nextAdCountdown={player.nextAdSecs}
+                onPlayPause={player.togglePlay}
+                onPrevious={player.previousTrack}
+                onNext={player.nextTrack}
+                onMusicVolumeChange={player.setMusicVolume}
+                onAdVolumeChange={player.setAdVolume}
+                onForceAd={player.playAd}
+                isFading={player.isFading}
               />
+
+              {/* Music Tabs */}
+              <div>
+                <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <span>🎧 Música</span>
+                </h2>
+                <MusicTabs
+                  onSelectMp3={(file) => {
+                    const url = URL.createObjectURL(file);
+                    if (player.musicRef.current) {
+                      player.musicRef.current.src = url;
+                    }
+                  }}
+                  onSelectRadio={(url, name) => {
+                    if (player.musicRef.current) {
+                      player.musicRef.current.src = url;
+                    }
+                  }}
+                  onSelectDrive={(fileId) => {
+                    if (player.musicRef.current) {
+                      player.musicRef.current.src = `/api/drive/stream/${fileId}`;
+                    }
+                  }}
+                />
+              </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
-                <div className="text-2xl font-bold text-purple-400 mb-1">0</div>
-                <p className="text-xs text-zinc-400 font-mono">Anuncios hoy</p>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
-                <div className="text-xl font-bold text-orange-400 mb-1">—</div>
-                <p className="text-xs text-zinc-400 font-mono">Jingle actual</p>
-              </div>
-              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
-                <div className="text-2xl font-bold text-cyan-400 mb-1">{player.jingles.length}</div>
-                <p className="text-xs text-zinc-400 font-mono">En Drive</p>
-              </div>
+            {/* Right Column - Stats & Jingles */}
+            <div className="space-y-6 overflow-y-auto pl-3 border-l border-slate-700">
+              {/* Stats Panel */}
+              <StatsPanel
+                adsToday={player.adsToday}
+                currentJingle={player.jingles[0]?.name}
+                driveFileCount={player.jingles.length}
+                adInterval={client.intervalo}
+              />
+
+              {/* Jingle Queue */}
+              <JingleQueue
+                jingles={player.jingles}
+                loading={player.jingles.length === 0}
+                onSync={player.syncJingles}
+                driveStatus="connected"
+                lastSync={new Date().toLocaleTimeString()}
+                driveFolder={client.folder}
+              />
             </div>
           </div>
         </div>

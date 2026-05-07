@@ -40,6 +40,7 @@ export function useAudioPlayer(client: Client) {
   const [jingles, setJingles] = useState<DriveFile[]>([]);
   const [sourceMode, setSourceMode] = useState<'radio' | 'drive' | 'local'>('local');
   const [isFading, setIsFading] = useState(false);
+  const [adsToday, setAdsToday] = useState(0);
 
   const adTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -145,6 +146,8 @@ export function useAudioPlayer(client: Client) {
         adRef.current.volume = adVolume / 100;
         adRef.current.play().catch(() => {});
         setAdPlaying(true);
+        // Increment ads counter
+        setAdsToday((prev) => prev + 1);
       }
     });
 
@@ -310,6 +313,7 @@ export function useAudioPlayer(client: Client) {
     jingles,
     sourceMode,
     isFading,
+    adsToday,
     togglePlay,
     playAd,
     scheduleAd,
