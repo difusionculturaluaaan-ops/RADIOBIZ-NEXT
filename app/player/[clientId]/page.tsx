@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import PinScreen from '@/components/PinScreen';
 import PlayerCard from '@/components/PlayerCard';
+import MusicTabs from '@/components/MusicTabs';
 
 interface Client {
   id: string;
@@ -236,6 +237,31 @@ function PlayerContent({ client }: { client: Client }) {
               onForceAd={player.playAd}
               isFading={player.isFading}
             />
+
+            {/* Music Tabs */}
+            <div>
+              <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <span>🎧 Música</span>
+              </h2>
+              <MusicTabs
+                onSelectMp3={(file) => {
+                  const url = URL.createObjectURL(file);
+                  if (player.musicRef.current) {
+                    player.musicRef.current.src = url;
+                  }
+                }}
+                onSelectRadio={(url, name) => {
+                  if (player.musicRef.current) {
+                    player.musicRef.current.src = url;
+                  }
+                }}
+                onSelectDrive={(fileId) => {
+                  if (player.musicRef.current) {
+                    player.musicRef.current.src = `/api/drive/stream/${fileId}`;
+                  }
+                }}
+              />
+            </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-3">
