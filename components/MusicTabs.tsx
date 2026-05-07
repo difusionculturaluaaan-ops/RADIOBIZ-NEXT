@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface MusicTabsProps {
   onSelectMp3: (file: File) => void;
@@ -33,7 +33,15 @@ export default function MusicTabs({
   const [activeTab, setActiveTab] = useState<TabType>('mp3');
   const [radioUrl, setRadioUrl] = useState('');
   const [driveFolderInput, setDriveFolderInput] = useState(driveFolderId);
+  const [loadingDrive, setLoadingDrive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-load Drive music folder on mount if provided
+  useEffect(() => {
+    if (driveFolderId && driveFiles.length === 0) {
+      handleLoadDrive();
+    }
+  }, [driveFolderId]);
 
   const handleMp3Upload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files;
@@ -52,10 +60,15 @@ export default function MusicTabs({
     }
   };
 
-  const handleLoadDrive = () => {
+  const handleLoadDrive = async () => {
     if (driveFolderInput.trim()) {
-      onLoadDrive?.(driveFolderInput);
-      onSelectDrive(driveFolderInput);
+      setLoadingDrive(true);
+      try {
+        onLoadDrive?.(driveFolderInput);
+        onSelectDrive(driveFolderInput);
+      } finally {
+        setLoadingDrive(false);
+      }
     }
   };
 
@@ -172,9 +185,10 @@ export default function MusicTabs({
               />
               <button
                 onClick={handleLoadDrive}
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded transition-colors whitespace-nowrap"
+                disabled={loadingDrive}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded transition-colors whitespace-nowrap disabled:opacity-50"
               >
-                🔍 Cargar
+                {loadingDrive ? '⏳' : '🔍'} {loadingDrive ? 'Cargando...' : 'Cargar'}
               </button>
             </div>
             <p className="text-xs text-zinc-500 mt-1">Pega el ID de tu carpeta con archivos MP3</p>

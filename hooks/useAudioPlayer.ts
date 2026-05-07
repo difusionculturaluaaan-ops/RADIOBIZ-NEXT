@@ -264,14 +264,16 @@ export function useAudioPlayer(client: Client) {
     };
   }, [sourceMode]);
 
-  // Sincronizar jingles al montar
+  // Sincronizar jingles al montar y periódicamente
   useEffect(() => {
-    void syncJingles();
-    const interval = setInterval(() => {
+    if (client.folder) {
       void syncJingles();
-    }, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [syncJingles]);
+      const interval = setInterval(() => {
+        void syncJingles();
+      }, 2 * 60 * 1000); // Sync every 2 minutes
+      return () => clearInterval(interval);
+    }
+  }, [client.folder, syncJingles]);
 
   // Next and previous track
   const nextTrack = useCallback(() => {

@@ -100,6 +100,24 @@ function PlayerContent({ client }: { client: Client }) {
   const player = useAudioPlayer(client);
   const params = useParams();
   const clientId = params.clientId as string;
+  const [driveMusic, setDriveMusic] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Load Drive music files if configured
+  useEffect(() => {
+    if (client.musicfolder) {
+      const loadMusicFiles = async () => {
+        try {
+          const response = await fetch(`/api/drive/${client.musicfolder}`);
+          const data = await response.json();
+          setDriveMusic(data.files || []);
+        } catch (error) {
+          console.error('Error loading Drive music:', error);
+        }
+      };
+
+      loadMusicFiles();
+    }
+  }, [client.musicfolder]);
 
   // Session management and remote commands
   useEffect(() => {
@@ -262,6 +280,17 @@ function PlayerContent({ client }: { client: Client }) {
                   onSelectDrive={(fileId) => {
                     if (player.musicRef.current) {
                       player.musicRef.current.src = `/api/drive/stream/${fileId}`;
+                    }
+                  }}
+                  driveFiles={driveMusic}
+                  driveFolderId={client.musicfolder}
+                  onLoadDrive={async (folderId) => {
+                    try {
+                      const response = await fetch(`/api/drive/${folderId}`);
+                      const data = await response.json();
+                      setDriveMusic(data.files || []);
+                    } catch (error) {
+                      console.error('Error loading Drive folder:', error);
                     }
                   }}
                 />
