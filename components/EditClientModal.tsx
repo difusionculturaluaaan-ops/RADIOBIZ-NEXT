@@ -13,6 +13,8 @@ interface Client {
   paymentDate?: string;
   createdAt?: number;
   blocked?: boolean;
+  pin?: string;
+  clientPin?: string;
 }
 
 interface EditClientModalProps {
@@ -80,6 +82,7 @@ export default function EditClientModal({
     onSave({
       id: client.id,
       ...formData,
+      pin: formData.clientPin,
       createdAt: client.createdAt || Date.now(),
     });
   };
