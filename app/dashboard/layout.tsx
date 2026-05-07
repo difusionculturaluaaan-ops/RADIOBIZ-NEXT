@@ -61,7 +61,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-black">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto ml-48">
         {isDevelopment && (
           <div className="fixed top-0 right-0 bg-yellow-900/30 border-l border-b border-yellow-700 px-4 py-2 text-yellow-400 text-xs z-40">
             🔓 Modo Desarrollo (Sin Autenticación)

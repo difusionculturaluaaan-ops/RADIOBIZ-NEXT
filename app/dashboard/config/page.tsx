@@ -112,15 +112,15 @@ export default function ConfigPage() {
   };
 
   return (
-    <div className="bg-black min-h-screen">
-      <div className="p-8">
+    <div className="bg-black min-h-screen w-full">
+      <div className="w-full h-full px-8 py-8">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-white">Configuración</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white">Configuración</h1>
         </div>
 
         {/* Config Sections */}
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6 w-full max-w-4xl">
           {/* Security */}
           <div className="bg-slate-800/50 rounded-2xl p-8 border border-slate-700">
             <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
