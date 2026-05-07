@@ -5,7 +5,8 @@
       "PowerShell(Stop-Process -Id 7040 -Force)",
       "Bash(curl -s http://localhost:3000/login)",
       "Bash(curl -s http://localhost:3000/landing)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(git -C \"c:\\\\Users\\\\image\\\\Documents\\\\radiobiz-next\" log --oneline -10)"
     ]
   }
 }
