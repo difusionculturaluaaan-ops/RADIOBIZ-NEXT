@@ -30,12 +30,16 @@ export function useAudioPlayer(client: Client) {
 
   const [playing, setPlaying] = useState(false);
   const [adPlaying, setAdPlaying] = useState(false);
-  const [volume, setVolume] = useState(80);
-  const [currentTrack, setCurrentTrack] = useState({ name: '...', duration: '0:00' });
+  const [musicVolume, setMusicVolume] = useState(80);
+  const [adVolume, setAdVolume] = useState(90);
+  const [currentTrack, setCurrentTrack] = useState({ name: 'Sin pista cargada', duration: 0, source: 'Selecciona una fuente' });
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [nextAdSecs, setNextAdSecs] = useState(0);
   const [jingles, setJingles] = useState<DriveFile[]>([]);
   const [sourceMode, setSourceMode] = useState<'radio' | 'drive' | 'local'>('local');
+  const [isFading, setIsFading] = useState(false);
 
   const adTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cdTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -69,13 +73,16 @@ export function useAudioPlayer(client: Client) {
 
   // Fade out
   const fadeOut = useCallback((callback: () => void) => {
+    setIsFading(true);
     const secs = client.fade ?? 2;
     if (secs === 0) {
+      setIsFading(false);
       callback();
       return;
     }
 
     if (!musicRef.current) {
+      setIsFading(false);
       callback();
       return;
     }
@@ -91,6 +98,7 @@ export function useAudioPlayer(client: Client) {
       }
       if (step >= steps) {
         clearInterval(timer);
+        setIsFading(false);
         callback();
       }
     }, 50);
@@ -100,9 +108,12 @@ export function useAudioPlayer(client: Client) {
   const fadeIn = useCallback(() => {
     if (!musicRef.current) return;
     const secs = client.fade ?? 2;
-    if (secs === 0) return;
+    if (secs === 0) {
+      musicRef.current.volume = musicVolume / 100;
+      return;
+    }
 
-    const targetVolume = volume / 100;
+    const targetVolume = musicVolume / 100;
     const steps = secs * 20;
     const inc = targetVolume / steps;
     let step = 0;
@@ -116,7 +127,7 @@ export function useAudioPlayer(client: Client) {
         clearInterval(timer);
       }
     }, 50);
-  }, [client.fade, volume]);
+  }, [client.fade, musicVolume]);
 
   // Reproducir anuncio/jingle
   const playAd = useCallback(async () => {
@@ -131,14 +142,14 @@ export function useAudioPlayer(client: Client) {
       }
       if (adRef.current) {
         adRef.current.src = `/api/drive/stream/${jingle.id}`;
-        adRef.current.volume = volume / 100;
+        adRef.current.volume = adVolume / 100;
         adRef.current.play().catch(() => {});
         setAdPlaying(true);
       }
     });
 
     jingleIndexRef.current = (jingleIndexRef.current + 1) % jingles.length;
-  }, [jingles, volume, fadeOut]);
+  }, [jingles, adVolume, fadeOut]);
 
   // Programar anuncio
   const scheduleAd = useCallback(() => {
@@ -200,12 +211,18 @@ export function useAudioPlayer(client: Client) {
     }
   }, [playing]);
 
-  // Update volume on musicRef
+  // Update volume on musicRef and adRef
   useEffect(() => {
     if (musicRef.current) {
-      musicRef.current.volume = volume / 100;
+      musicRef.current.volume = musicVolume / 100;
     }
-  }, [volume]);
+  }, [musicVolume]);
+
+  useEffect(() => {
+    if (adRef.current) {
+      adRef.current.volume = adVolume / 100;
+    }
+  }, [adVolume]);
 
   // Track progress and metadata
   useEffect(() => {
@@ -215,16 +232,20 @@ export function useAudioPlayer(client: Client) {
     const updateProgress = () => {
       if (audio.duration) {
         setProgress((audio.currentTime / audio.duration) * 100);
+        setCurrentTime(audio.currentTime);
       }
     };
 
     const updateMetadata = () => {
+      setDuration(audio.duration || 0);
       if (audio.src) {
         // Extract filename from URL or use default
         const fileName = audio.src.split('/').pop() || 'Reproduciendo';
+        const sourceLabel = sourceMode === 'radio' ? 'Radio online' : sourceMode === 'drive' ? 'Desde Drive' : 'Archivo local';
         setCurrentTrack({
           name: fileName,
-          duration: audio.duration ? `${Math.floor(audio.duration / 60)}:${String(Math.floor(audio.duration % 60)).padStart(2, '0')}` : '0:00',
+          duration: audio.duration || 0,
+          source: sourceLabel,
         });
       }
     };
@@ -238,7 +259,7 @@ export function useAudioPlayer(client: Client) {
       audio.removeEventListener('loadedmetadata', updateMetadata);
       audio.removeEventListener('play', updateMetadata);
     };
-  }, []);
+  }, [sourceMode]);
 
   // Sincronizar jingles al montar
   useEffect(() => {
@@ -248,6 +269,21 @@ export function useAudioPlayer(client: Client) {
     }, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, [syncJingles]);
+
+  // Next and previous track
+  const nextTrack = useCallback(() => {
+    if (sourceMode === 'drive' && musicFiles.length > 0) {
+      const next = (curTrack + 1) % musicFiles.length;
+      // Implementar cambio de track
+    }
+  }, [sourceMode, musicFiles, curTrack]);
+
+  const previousTrack = useCallback(() => {
+    if (sourceMode === 'drive' && musicFiles.length > 0) {
+      const prev = (curTrack - 1 + musicFiles.length) % musicFiles.length;
+      // Implementar cambio de track
+    }
+  }, [sourceMode, musicFiles, curTrack]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -262,18 +298,25 @@ export function useAudioPlayer(client: Client) {
     adRef,
     playing,
     adPlaying,
-    volume,
-    setVolume,
+    musicVolume,
+    setMusicVolume,
+    adVolume,
+    setAdVolume,
     currentTrack,
     progress,
+    currentTime,
+    duration,
     nextAdSecs,
     jingles,
     sourceMode,
+    isFading,
     togglePlay,
     playAd,
     scheduleAd,
     syncJingles,
     fadeOut,
     fadeIn,
+    nextTrack,
+    previousTrack,
   };
 }

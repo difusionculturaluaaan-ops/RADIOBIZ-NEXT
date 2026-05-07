@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation';
 import { ref, get, set, remove, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import PinScreen from '@/components/PinScreen';
+import PlayerCard from '@/components/PlayerCard';
 
 interface Client {
   id: string;
@@ -24,7 +26,6 @@ export default function PlayerPage() {
   const clientId = params.clientId as string;
 
   const [client, setClient] = useState<Client | null>(null);
-  const [pinInput, setPinInput] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -56,16 +57,6 @@ export default function PlayerPage() {
     }
   }, [clientId]);
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (client && pinInput === client.pin) {
-      setAuthenticated(true);
-      setPinInput('');
-    } else {
-      setError('PIN incorrecto');
-      setPinInput('');
-    }
-  };
 
   if (loading) {
     return (
@@ -87,33 +78,16 @@ export default function PlayerPage() {
   }
 
   if (!authenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <form onSubmit={handlePinSubmit} className="bg-gray-900 p-8 rounded-lg border border-gray-800 w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-white mb-2">{client.name}</h1>
-          <p className="text-gray-400 mb-6">Ingresa el PIN para continuar</p>
+    const handlePinSubmit = (pin: string) => {
+      if (client && pin === client.pin) {
+        setAuthenticated(true);
+        setError('');
+      } else {
+        setError('PIN incorrecto');
+      }
+    };
 
-          <input
-            type="password"
-            value={pinInput}
-            onChange={(e) => setPinInput(e.target.value)}
-            placeholder="PIN"
-            maxLength={4}
-            className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded mb-4 text-center text-2xl tracking-widest"
-            autoFocus
-          />
-
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded transition"
-          >
-            Entrar
-          </button>
-        </form>
-      </div>
-    );
+    return <PinScreen clientName={client.name} onSubmit={handlePinSubmit} error={error} />;
   }
 
   return <PlayerContent client={client} />;
@@ -197,101 +171,87 @@ function PlayerContent({ client }: { client: Client }) {
   }, [clientId, player]);
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">{client.name}</h1>
-          <p className="text-gray-400">Reproductor v1.0</p>
-        </div>
+    <div className="min-h-screen bg-black text-white">
+      {/* Audio Elements (hidden) */}
+      <audio
+        ref={player.musicRef}
+        crossOrigin="anonymous"
+        onEnded={() => {
+          if (player.adPlaying) {
+            player.scheduleAd();
+          }
+        }}
+      />
+      <audio
+        ref={player.adRef}
+        crossOrigin="anonymous"
+        onEnded={() => {
+          if (player.musicRef.current && player.adPlaying) {
+            player.fadeIn();
+            player.musicRef.current.play();
+          }
+        }}
+      />
 
-        {/* Player Card */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 mb-8">
-          {/* Audio Elements (hidden) */}
-          <audio
-            ref={player.musicRef}
-            onEnded={() => {
-              if (player.adPlaying) {
-                player.scheduleAd();
-              }
-            }}
-          />
-          <audio
-            ref={player.adRef}
-            onEnded={() => {
-              // Resume music
-              if (player.musicRef.current && player.adPlaying) {
-                player.fadeIn();
-                player.musicRef.current.play();
-              }
-            }}
-          />
-
-          {/* Now Playing */}
-          <div className="mb-6">
-            <p className="text-gray-400 text-sm mb-1">{player.currentTrack.name}</p>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-xs text-gray-400">{player.sourceMode === 'radio' ? 'Radio' : 'Música'}</span>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="bg-gray-800 h-1 rounded-full overflow-hidden">
-              <div
-                className="bg-purple-600 h-full transition-all"
-                style={{ width: `${player.progress}%` }}
-              ></div>
-            </div>
-          </div>
-
-          {/* Play Button */}
-          <div className="flex justify-center mb-6">
-            <button
-              onClick={player.togglePlay}
-              className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition ${
-                player.playing
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : 'bg-gray-800 hover:bg-gray-700'
-              }`}
-            >
-              {player.playing ? '⏸' : '▶'}
-            </button>
-          </div>
-
-          {/* Volume Controls */}
-          <div className="space-y-4 mb-6">
+      <div className="flex flex-col h-screen">
+        {/* Topbar */}
+        <div className="border-b border-slate-700 bg-black/80 backdrop-blur-md sticky top-0 z-10 px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">📻</div>
             <div>
-              <label className="text-xs text-gray-400 block mb-2">Volumen: {player.volume}%</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={player.volume}
-                onChange={(e) => player.setVolume(Number(e.target.value))}
-                className="w-full"
-              />
+              <h1 className="text-lg font-bold text-white">{client.name}</h1>
+              <p className="text-xs text-zinc-400 font-mono">Reproductor v4</p>
             </div>
           </div>
-
-          {/* Next Ad */}
-          <div className="text-center">
-            <p className="text-sm text-gray-400">
-              Próximo anuncio en: {Math.floor(player.nextAdSecs / 60)}:{String(player.nextAdSecs % 60).padStart(2, '0')}
-            </p>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono ${
+              player.playing ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-slate-800 text-zinc-400 border border-slate-700'
+            }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${player.playing ? 'bg-green-400' : 'bg-zinc-400'}`} />
+              <span>{player.playing ? 'En vivo' : 'Inactivo'}</span>
+            </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded p-4">
-            <p className="text-xs text-gray-400 mb-1">Jingles</p>
-            <p className="text-2xl font-bold">{player.jingles.length}</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded p-4">
-            <p className="text-xs text-gray-400 mb-1">Intervalo</p>
-            <p className="text-2xl font-bold">{client.intervalo} min</p>
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Player Card */}
+            <PlayerCard
+              trackName={player.currentTrack.name}
+              trackSource={player.currentTrack.source}
+              playing={player.playing}
+              progress={player.progress}
+              currentTime={player.currentTime}
+              duration={player.duration}
+              musicVolume={player.musicVolume}
+              adVolume={player.adVolume}
+              adPlaying={player.adPlaying}
+              nextAdCountdown={player.nextAdSecs}
+              onPlayPause={player.togglePlay}
+              onPrevious={player.previousTrack}
+              onNext={player.nextTrack}
+              onMusicVolumeChange={player.setMusicVolume}
+              onAdVolumeChange={player.setAdVolume}
+              onForceAd={player.playAd}
+              isFading={player.isFading}
+            />
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
+                <div className="text-2xl font-bold text-purple-400 mb-1">0</div>
+                <p className="text-xs text-zinc-400 font-mono">Anuncios hoy</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
+                <div className="text-xl font-bold text-orange-400 mb-1">—</div>
+                <p className="text-xs text-zinc-400 font-mono">Jingle actual</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
+                <div className="text-2xl font-bold text-cyan-400 mb-1">{player.jingles.length}</div>
+                <p className="text-xs text-zinc-400 font-mono">En Drive</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
