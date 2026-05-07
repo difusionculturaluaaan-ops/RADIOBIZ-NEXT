@@ -11,6 +11,8 @@ import PlayerCard from '@/components/PlayerCard';
 import MusicTabs from '@/components/MusicTabs';
 import JingleQueue from '@/components/JingleQueue';
 import StatsPanel from '@/components/StatsPanel';
+import SettingsPanel from '@/components/SettingsPanel';
+import ActivityLog from '@/components/ActivityLog';
 
 interface Client {
   id: string;
@@ -101,17 +103,28 @@ function PlayerContent({ client }: { client: Client }) {
   const params = useParams();
   const clientId = params.clientId as string;
   const [driveMusic, setDriveMusic] = useState<Array<{ id: string; name: string }>>([]);
+  const [activityLog, setActivityLog] = useState<Array<{ timestamp: string; message: string; type: 'ok' | 'warn' | 'error' | 'info' | 'ad' }>>([
+    { timestamp: new Date().toLocaleTimeString(), message: 'Reproductor iniciado', type: 'info' },
+  ]);
+
+  const addLogEntry = (message: string, type: 'ok' | 'warn' | 'error' | 'info' | 'ad' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    setActivityLog((prev) => [{ timestamp, message, type }, ...prev].slice(0, 50));
+  };
 
   // Load Drive music files if configured
   useEffect(() => {
     if (client.musicfolder) {
       const loadMusicFiles = async () => {
         try {
+          addLogEntry('Cargando música desde Drive...', 'info');
           const response = await fetch(`/api/drive/${client.musicfolder}`);
           const data = await response.json();
           setDriveMusic(data.files || []);
+          addLogEntry(`${(data.files || []).length} archivos cargados`, 'ok');
         } catch (error) {
           console.error('Error loading Drive music:', error);
+          addLogEntry('Error al cargar música de Drive', 'error');
         }
       };
 
@@ -298,7 +311,7 @@ function PlayerContent({ client }: { client: Client }) {
             </div>
 
             {/* Right Column - Stats & Jingles */}
-            <div className="space-y-6 overflow-y-auto pl-3 border-l border-slate-700">
+            <div className="space-y-6 overflow-y-auto pl-3 border-l border-slate-700 pb-6">
               {/* Stats Panel */}
               <StatsPanel
                 adsToday={player.adsToday}
@@ -311,11 +324,27 @@ function PlayerContent({ client }: { client: Client }) {
               <JingleQueue
                 jingles={player.jingles}
                 loading={player.jingles.length === 0}
-                onSync={player.syncJingles}
+                onSync={() => {
+                  player.syncJingles();
+                  addLogEntry('Sincronizando jingles...', 'info');
+                }}
                 driveStatus="connected"
                 lastSync={new Date().toLocaleTimeString()}
                 driveFolder={client.folder}
               />
+
+              {/* Settings Panel */}
+              <SettingsPanel
+                clientName={client.name}
+                adInterval={client.intervalo}
+                fadeDuration={client.fade || 2}
+                onSave={(settings) => {
+                  addLogEntry(`Configuración actualizada: ${settings.clientName}`, 'ok');
+                }}
+              />
+
+              {/* Activity Log */}
+              <ActivityLog entries={activityLog} />
             </div>
           </div>
         </div>
