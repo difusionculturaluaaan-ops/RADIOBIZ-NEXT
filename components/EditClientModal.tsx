@@ -29,6 +29,7 @@ interface FormData {
   price: number;
   status: 'sin-pago' | 'pagado' | 'pendiente';
   paymentDate: string;
+  clientPin?: string;
 }
 
 export default function EditClientModal({
@@ -44,6 +45,7 @@ export default function EditClientModal({
     price: 0,
     status: 'sin-pago',
     paymentDate: '',
+    clientPin: '',
   });
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export default function EditClientModal({
         price: client.price || 0,
         status: client.status || 'sin-pago',
         paymentDate: client.paymentDate || '',
+        clientPin: (client as Record<string, unknown>).clientPin as string || '',
       };
       setFormData(newFormData);
     }
@@ -101,6 +104,24 @@ export default function EditClientModal({
               required
               className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              PIN del Cliente (4-6 dígitos)
+            </label>
+            <input
+              type="text"
+              name="clientPin"
+              value={formData.clientPin || ''}
+              onChange={handleChange}
+              placeholder="Ej: 1234"
+              maxLength={6}
+              className="w-full px-4 py-2 bg-zinc-50 dark:bg-slate-900 border border-zinc-200 dark:border-slate-700 rounded-lg text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm"
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+              Este PIN lo ingresará el cliente en el reproductor
+            </p>
           </div>
 
           <div>
