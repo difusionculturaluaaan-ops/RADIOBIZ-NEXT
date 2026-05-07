@@ -96,6 +96,20 @@ export default function ClientesPage() {
     });
   };
 
+  const handleControlRemote = (clientId: string) => {
+    // Navigate to control page with client ID
+    window.location.href = `/dashboard/control?client=${clientId}`;
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (!db) return;
+    try {
+      await (await import('firebase/database')).remove((await import('firebase/database')).ref(db, `clients/${clientId}`));
+    } catch (error) {
+      console.error('Error deleting client:', error);
+    }
+  };
+
   const handleWhatsApp = (clientId: string) => {
     const url = `${window.location.origin}/player/${clientId}`;
     const message = `🎵 Hola, aquí está el enlace de tu reproductor RadioBiz: ${url}`;
