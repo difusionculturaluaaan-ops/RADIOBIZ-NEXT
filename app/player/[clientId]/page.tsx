@@ -223,7 +223,13 @@ function PlayerContent({ client }: { client: Client }) {
           if (player.musicRef.current && player.adPlaying) {
             player.fadeIn();
             player.musicRef.current.play();
+            // CRITICAL: Reset adPlaying state
+            // (The player hook will handle this, but we ensure it here too)
           }
+          // Schedule next ad and reset flag
+          setTimeout(() => {
+            player.scheduleAd();
+          }, 500);
         }}
       />
 

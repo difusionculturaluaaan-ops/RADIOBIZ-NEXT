@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useRef, useState, useEffect, useCallback } from 'react';
 
 interface Client {
@@ -16,7 +16,7 @@ interface Client {
 interface DriveFile {
   id: string;
   name: string;
-  modifiedTime: string;
+  modifiedTime?: string;
 }
 
 type WakeLockSentinel = {
@@ -28,74 +28,78 @@ export function useAudioPlayer(client: Client) {
   const adRef = useRef<HTMLAudioElement>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
+  // State
   const [playing, setPlaying] = useState(false);
   const [adPlaying, setAdPlaying] = useState(false);
+  const [isFading, setIsFading] = useState(false);
   const [musicVolume, setMusicVolume] = useState(80);
   const [adVolume, setAdVolume] = useState(90);
-  const [currentTrack, setCurrentTrack] = useState({ name: 'Sin pista cargada', duration: 0, source: 'Selecciona una fuente' });
+  const [currentTrack, setCurrentTrack] = useState({
+    name: 'Sin pista cargada',
+    duration: 0,
+    source: 'Selecciona una fuente',
+  });
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [nextAdSecs, setNextAdSecs] = useState(0);
   const [jingles, setJingles] = useState<DriveFile[]>([]);
-  const [sourceMode, setSourceMode] = useState<'radio' | 'drive' | 'local'>('local');
-  const [isFading, setIsFading] = useState(false);
+  const [driveMusicFiles, setDriveMusicFiles] = useState<DriveFile[]>([]);
+  const [sourceMode, setSourceMode] = useState<'mp3' | 'radio' | 'drive'>('mp3');
   const [adsToday, setAdsToday] = useState(0);
 
+  // Refs for tracking state
+  const jingleIndexRef = useRef(0);
+  const curTrackRef = useRef(0);
   const adTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const jingleIndexRef = useRef(0);
 
-  // Cargar música según sourceMode
-  const loadMusic = useCallback(async () => {
-    if (!musicRef.current) return;
-
-    if (client.radio) {
-      musicRef.current.src = client.radio;
-      setSourceMode('radio');
-      return;
+  // ═══ SYNC JINGLES ═══
+  const syncJingles = useCallback(async () => {
+    if (!client.folder) return;
+    try {
+      const response = await fetch(`/api/drive/${client.folder}`);
+      const data = await response.json();
+      setJingles(data.files || []);
+    } catch (error) {
+      console.error('Error syncing jingles:', error);
     }
+  }, [client.folder]);
 
-    if (client.musicfolder) {
-      try {
-        const response = await fetch(`/api/drive/${client.musicfolder}`);
-        const data = await response.json();
-        const files = data.files || [];
-        if (files.length > 0) {
-          const randomFile = files[Math.floor(Math.random() * files.length)];
-          musicRef.current.src = `/api/drive/stream/${randomFile.id}`;
-          setSourceMode('drive');
-        }
-      } catch (error) {
-        console.error('Error loading music:', error);
-      }
+  // ═══ LOAD DRIVE MUSIC ═══
+  const loadDriveMusic = useCallback(async (folderId?: string) => {
+    const folderToLoad = folderId || client.musicfolder;
+    if (!folderToLoad) return;
+
+    try {
+      const response = await fetch(`/api/drive/${folderToLoad}`);
+      const data = await response.json();
+      setDriveMusicFiles(data.files || []);
+    } catch (error) {
+      console.error('Error loading Drive music:', error);
     }
-  }, [client]);
+  }, [client.musicfolder]);
 
-  // Fade out
+  // ═══ FADE OUT ═══
   const fadeOut = useCallback((callback: () => void) => {
     setIsFading(true);
     const secs = client.fade ?? 2;
-    if (secs === 0) {
-      setIsFading(false);
-      callback();
-      return;
-    }
 
-    if (!musicRef.current) {
+    if (secs === 0 || !musicRef.current) {
       setIsFading(false);
       callback();
       return;
     }
 
     const steps = secs * 20;
-    const dec = musicRef.current.volume / steps;
+    const initialVolume = musicRef.current.volume;
+    const dec = initialVolume / steps;
     let step = 0;
 
     const timer = setInterval(() => {
       step++;
       if (musicRef.current) {
-        musicRef.current.volume = Math.max(0, musicRef.current.volume - dec);
+        musicRef.current.volume = Math.max(0, initialVolume - dec * step);
       }
       if (step >= steps) {
         clearInterval(timer);
@@ -105,16 +109,18 @@ export function useAudioPlayer(client: Client) {
     }, 50);
   }, [client.fade]);
 
-  // Fade in
+  // ═══ FADE IN ═══
   const fadeIn = useCallback(() => {
     if (!musicRef.current) return;
+
     const secs = client.fade ?? 2;
+    const targetVolume = musicVolume / 100;
+
     if (secs === 0) {
-      musicRef.current.volume = musicVolume / 100;
+      musicRef.current.volume = targetVolume;
       return;
     }
 
-    const targetVolume = musicVolume / 100;
     const steps = secs * 20;
     const inc = targetVolume / steps;
     let step = 0;
@@ -122,7 +128,7 @@ export function useAudioPlayer(client: Client) {
     const timer = setInterval(() => {
       step++;
       if (musicRef.current) {
-        musicRef.current.volume = Math.min(targetVolume, musicRef.current.volume + inc);
+        musicRef.current.volume = Math.min(targetVolume, step * inc);
       }
       if (step >= steps) {
         clearInterval(timer);
@@ -130,7 +136,7 @@ export function useAudioPlayer(client: Client) {
     }, 50);
   }, [client.fade, musicVolume]);
 
-  // Reproducir anuncio/jingle
+  // ═══ PLAY AD (JINGLE) ═══
   const playAd = useCallback(async () => {
     if (jingles.length === 0) return;
 
@@ -146,7 +152,7 @@ export function useAudioPlayer(client: Client) {
         adRef.current.volume = adVolume / 100;
         adRef.current.play().catch(() => {});
         setAdPlaying(true);
-        // Increment ads counter
+        // Increment ad counter
         setAdsToday((prev) => prev + 1);
       }
     });
@@ -154,10 +160,12 @@ export function useAudioPlayer(client: Client) {
     jingleIndexRef.current = (jingleIndexRef.current + 1) % jingles.length;
   }, [jingles, adVolume, fadeOut]);
 
-  // Programar anuncio
+  // ═══ SCHEDULE AD ═══
   const scheduleAd = useCallback(() => {
-    if (adTimerRef.current) clearInterval(adTimerRef.current);
+    if (adTimerRef.current) clearTimeout(adTimerRef.current);
     if (cdTimerRef.current) clearInterval(cdTimerRef.current);
+
+    if (!playing) return;
 
     const intervalMs = (client.intervalo || 10) * 60 * 1000;
     const nextAdAt = Date.now() + intervalMs;
@@ -175,19 +183,7 @@ export function useAudioPlayer(client: Client) {
     }, 500);
   }, [client.intervalo, playing, playAd]);
 
-  // Sincronizar jingles desde Drive
-  const syncJingles = useCallback(async () => {
-    if (!client.folder) return;
-    try {
-      const response = await fetch(`/api/drive/${client.folder}`);
-      const data = await response.json();
-      setJingles(data.files || []);
-    } catch (error) {
-      console.error('Error syncing jingles:', error);
-    }
-  }, [client.folder]);
-
-  // Toggle play/pause
+  // ═══ TOGGLE PLAY ═══
   const togglePlay = useCallback(() => {
     if (!musicRef.current) return;
 
@@ -196,25 +192,60 @@ export function useAudioPlayer(client: Client) {
       setPlaying(false);
       if (adTimerRef.current) clearTimeout(adTimerRef.current);
     } else {
-      loadMusic();
       musicRef.current.play().catch(() => {});
       setPlaying(true);
       scheduleAd();
     }
-  }, [playing, loadMusic, scheduleAd]);
+  }, [playing, scheduleAd]);
 
-  // Wake lock
+  // ═══ NEXT TRACK ═══
+  const nextTrack = useCallback(() => {
+    if (sourceMode !== 'drive' || driveMusicFiles.length === 0) return;
+
+    curTrackRef.current = (curTrackRef.current + 1) % driveMusicFiles.length;
+    const file = driveMusicFiles[curTrackRef.current];
+
+    if (musicRef.current) {
+      musicRef.current.src = `/api/drive/stream/${file.id}`;
+      if (playing) {
+        musicRef.current.play().catch(() => {});
+      }
+    }
+  }, [sourceMode, driveMusicFiles, playing]);
+
+  // ═══ PREVIOUS TRACK ═══
+  const previousTrack = useCallback(() => {
+    if (sourceMode !== 'drive' || driveMusicFiles.length === 0) return;
+
+    curTrackRef.current = (curTrackRef.current - 1 + driveMusicFiles.length) % driveMusicFiles.length;
+    const file = driveMusicFiles[curTrackRef.current];
+
+    if (musicRef.current) {
+      musicRef.current.src = `/api/drive/stream/${file.id}`;
+      if (playing) {
+        musicRef.current.play().catch(() => {});
+      }
+    }
+  }, [sourceMode, driveMusicFiles, playing]);
+
+  // ═══ WAKE LOCK ═══
   useEffect(() => {
     if (playing && 'wakeLock' in navigator) {
-      (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock.request('screen').then((wl: WakeLockSentinel) => {
-        wakeLockRef.current = wl;
-      }).catch(() => {});
+      (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock
+        .request('screen')
+        .then((wl: WakeLockSentinel) => {
+          wakeLockRef.current = wl;
+        })
+        .catch(() => {});
     } else {
-      wakeLockRef.current?.release();
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
     }
   }, [playing]);
 
-  // Update volume on musicRef and adRef
+  // ═══ UPDATE VOLUME ═══
   useEffect(() => {
     if (musicRef.current) {
       musicRef.current.volume = musicVolume / 100;
@@ -227,7 +258,7 @@ export function useAudioPlayer(client: Client) {
     }
   }, [adVolume]);
 
-  // Track progress and metadata
+  // ═══ TRACK PROGRESS & METADATA ═══
   useEffect(() => {
     const audio = musicRef.current;
     if (!audio) return;
@@ -242,9 +273,9 @@ export function useAudioPlayer(client: Client) {
     const updateMetadata = () => {
       setDuration(audio.duration || 0);
       if (audio.src) {
-        // Extract filename from URL or use default
         const fileName = audio.src.split('/').pop() || 'Reproduciendo';
-        const sourceLabel = sourceMode === 'radio' ? 'Radio online' : sourceMode === 'drive' ? 'Desde Drive' : 'Archivo local';
+        const sourceLabel =
+          sourceMode === 'radio' ? 'Radio online' : sourceMode === 'drive' ? 'Desde Drive' : 'Archivo local';
         setCurrentTrack({
           name: fileName,
           duration: audio.duration || 0,
@@ -264,33 +295,38 @@ export function useAudioPlayer(client: Client) {
     };
   }, [sourceMode]);
 
-  // Sincronizar jingles al montar y periódicamente
+  // ═══ SYNC JINGLES ON MOUNT & PERIODICALLY ═══
   useEffect(() => {
     if (client.folder) {
       void syncJingles();
       const interval = setInterval(() => {
         void syncJingles();
-      }, 2 * 60 * 1000); // Sync every 2 minutes
+      }, 2 * 60 * 1000);
       return () => clearInterval(interval);
     }
   }, [client.folder, syncJingles]);
 
-  // Next and previous track
-  const nextTrack = useCallback(() => {
-    if (sourceMode === 'drive' && musicFiles.length > 0) {
-      const next = (curTrack + 1) % musicFiles.length;
-      // Implementar cambio de track
+  // ═══ LOAD DRIVE MUSIC ON MOUNT ═══
+  useEffect(() => {
+    if (client.musicfolder) {
+      void loadDriveMusic();
     }
-  }, [sourceMode, musicFiles, curTrack]);
+  }, [client.musicfolder, loadDriveMusic]);
 
-  const previousTrack = useCallback(() => {
-    if (sourceMode === 'drive' && musicFiles.length > 0) {
-      const prev = (curTrack - 1 + musicFiles.length) % musicFiles.length;
-      // Implementar cambio de track
-    }
-  }, [sourceMode, musicFiles, curTrack]);
+  // ═══ AD ENDED HANDLER ═══
+  useEffect(() => {
+    const ad = adRef.current;
+    if (!ad) return;
 
-  // Cleanup timers on unmount
+    const handleAdEnded = () => {
+      setAdPlaying(false);
+    };
+
+    ad.addEventListener('ended', handleAdEnded);
+    return () => ad.removeEventListener('ended', handleAdEnded);
+  }, []);
+
+  // ═══ CLEANUP TIMERS ═══
   useEffect(() => {
     return () => {
       if (adTimerRef.current) clearTimeout(adTimerRef.current);
@@ -299,8 +335,10 @@ export function useAudioPlayer(client: Client) {
   }, []);
 
   return {
+    // Refs
     musicRef,
     adRef,
+    // State
     playing,
     adPlaying,
     musicVolume,
@@ -313,9 +351,11 @@ export function useAudioPlayer(client: Client) {
     duration,
     nextAdSecs,
     jingles,
+    driveMusicFiles,
     sourceMode,
     isFading,
     adsToday,
+    // Methods
     togglePlay,
     playAd,
     scheduleAd,
@@ -324,5 +364,8 @@ export function useAudioPlayer(client: Client) {
     fadeIn,
     nextTrack,
     previousTrack,
+    loadDriveMusic,
+    // Unified volume setter (for backward compat)
+    setVolume: setMusicVolume,
   };
 }
