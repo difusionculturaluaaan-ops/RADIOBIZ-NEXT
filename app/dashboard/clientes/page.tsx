@@ -40,19 +40,23 @@ export default function ClientesPage() {
     const unsubscribe = onValue(
       clientsRef,
       (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const clientList = Object.entries(data).map(([id, clientData]: [string, Record<string, unknown>]) => ({
-            id,
-            name: clientData.name || 'Sin nombre',
-            driveFolder: clientData.driveFolder || '',
-            plan: clientData.plan || 'Estándar',
-            price: clientData.price || 0,
-            status: clientData.status || 'sin-pago',
-            paymentDate: clientData.paymentDate || '',
-            createdAt: clientData.createdAt || Date.now(),
-            blocked: clientData.blocked || false,
-          }));
+        const data = snapshot.val() as any;
+        if (data && typeof data === 'object') {
+          const clientList: any[] = [];
+          for (const id in data) {
+            const clientData = data[id];
+            clientList.push({
+              id,
+              name: clientData.name || 'Sin nombre',
+              driveFolder: clientData.driveFolder || '',
+              plan: clientData.plan || 'Estándar',
+              price: clientData.price || 0,
+              status: clientData.status || 'sin-pago',
+              paymentDate: clientData.paymentDate || '',
+              createdAt: clientData.createdAt || Date.now(),
+              blocked: clientData.blocked || false,
+            });
+          }
           setClients(clientList);
         } else {
           setClients([]);
