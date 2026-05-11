@@ -252,7 +252,7 @@ export default function Dashboard() {
                   driveFolder={client.folder}
                   plan={client.plan || 'Estándar'}
                   price={client.price || 0}
-                  status={client.blocked ? 'bloqueado' : 'sin-pago'}
+                  status="sin-pago"
                   blocked={client.blocked || false}
                   sessionCount={sessionCount}
                   onEdit={handleEdit}
