@@ -35,13 +35,17 @@ export default function ControlRemotoPage() {
     const unsubscribe = onValue(
       clientsRef,
       (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const clientList = Object.entries(data).map(([id, clientData]: [string, Record<string, unknown>]) => ({
-            id,
-            name: clientData.name || 'Sin nombre',
-            blocked: clientData.blocked || false,
-          }));
+        const data = snapshot.val() as any;
+        if (data && typeof data === 'object') {
+          const clientList: any[] = [];
+          for (const id in data) {
+            const clientData = data[id];
+            clientList.push({
+              id,
+              name: clientData.name || 'Sin nombre',
+              blocked: clientData.blocked || false,
+            });
+          }
           setClients(clientList);
           if (clientList.length > 0 && !selectedClientId) {
             setSelectedClientId(clientList[0].id);
