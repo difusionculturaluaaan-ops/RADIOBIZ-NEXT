@@ -34,8 +34,8 @@ export default function PagosPage() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data)
-            .map(([id, clientData]: [string, Record<string, unknown>]) => ({
+          const clientList = Object.entries(data as Record<string, Record<string, unknown>>)
+            .map(([id, clientData]) => ({
               id,
               name: (clientData.name as string) || 'Sin nombre',
               plan: (clientData.plan as string) || 'Estándar',
