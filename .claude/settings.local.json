@@ -20,7 +20,10 @@
       "Bash(npm outdated *)",
       "Bash(git -C \"c:\\\\Users\\\\image\\\\Documents\\\\radiobiz-next\" add -A)",
       "Bash(git -C \"c:\\\\Users\\\\image\\\\Documents\\\\radiobiz-next\" status)",
-      "Bash(git -C 'c:\\\\Users\\\\image\\\\Documents\\\\radiobiz-next' commit -m ' *)"
+      "Bash(git -C 'c:\\\\Users\\\\image\\\\Documents\\\\radiobiz-next' commit -m ' *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(taskkill /PID 15328 /F)"
     ]
   }
 }
