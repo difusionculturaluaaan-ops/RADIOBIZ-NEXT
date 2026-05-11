@@ -144,14 +144,14 @@ export default function Dashboard() {
       });
 
       // Also remove sessions for this client
-      const sessionsRef = ref(db, 'sessions');
+      const sessionsRef = ref(db!, 'sessions');
       onValue(sessionsRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           Object.entries(data).forEach(([sessionId, sessionData]) => {
             const s = sessionData as Session;
             if (s.clientId === id) {
-              remove(ref(db, `sessions/${sessionId}`));
+              remove(ref(db!, `sessions/${sessionId}`));
             }
           });
         }
