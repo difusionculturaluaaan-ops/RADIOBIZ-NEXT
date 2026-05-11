@@ -47,8 +47,8 @@ export default function Dashboard() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data as Record<string, Record<string, unknown>>)
-            .map(([id, clientData]) => ({
+          const clientList = Object.entries(data as Record<string, unknown>)
+            .map(([id, clientData]: any) => ({
               id,
               name: clientData.name as string || 'Sin nombre',
               folder: clientData.folder as string || '',
