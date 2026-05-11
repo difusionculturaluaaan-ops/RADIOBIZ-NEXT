@@ -258,7 +258,6 @@ export default function Dashboard() {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onControl={handleControl}
-                  onToggleBlock={() => handleToggleBlock(client.id, client.blocked || false)}
                 />
               );
             })}
