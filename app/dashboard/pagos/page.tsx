@@ -32,19 +32,20 @@ export default function PagosPage() {
     const unsubscribe = onValue(
       clientsRef,
       (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const clientList = Object.entries(data || {}).map((entry: any) => {
-            const [id, clientData] = entry;
-            return {
+        const data = snapshot.val() as any;
+        if (data && typeof data === 'object') {
+          const clientList: Client[] = [];
+          for (const id in data) {
+            const clientData = data[id];
+            clientList.push({
               id,
               name: (clientData.name as string) || 'Sin nombre',
               plan: (clientData.plan as string) || 'Estándar',
               price: (clientData.price as number) || 499,
               pagos: (clientData.pagos as Array<{ fecha: string; monto: number }>) || [],
-            };
-          })
-            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            });
+          }
+          clientList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
           setClients(clientList);
 

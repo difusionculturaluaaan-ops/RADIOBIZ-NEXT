@@ -46,11 +46,12 @@ export default function Dashboard() {
     const unsubscribe = onValue(
       clientsRef,
       (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const clientList = Object.entries(data || {}).map((entry: any) => {
-            const [id, clientData] = entry;
-            return {
+        const data = snapshot.val() as any;
+        if (data && typeof data === 'object') {
+          const clientList: Client[] = [];
+          for (const id in data) {
+            const clientData = data[id];
+            clientList.push({
               id,
               name: clientData.name as string || 'Sin nombre',
               folder: clientData.folder as string || '',
@@ -63,9 +64,9 @@ export default function Dashboard() {
               price: (clientData.price as number) || 0,
               blocked: (clientData.blocked as boolean) || false,
               createdAt: (clientData.createdAt as number) || Date.now(),
-            };
-          })
-            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            });
+          }
+          clientList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           setClients(clientList);
         } else {
           setClients([]);
