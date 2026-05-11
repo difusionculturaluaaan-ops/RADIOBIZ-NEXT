@@ -34,14 +34,16 @@ export default function PagosPage() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data as Record<string, unknown>)
-            .map(([id, clientData]: any) => ({
+          const clientList = Object.entries(data || {}).map((entry: any) => {
+            const [id, clientData] = entry;
+            return {
               id,
               name: (clientData.name as string) || 'Sin nombre',
               plan: (clientData.plan as string) || 'Estándar',
               price: (clientData.price as number) || 499,
               pagos: (clientData.pagos as Array<{ fecha: string; monto: number }>) || [],
-            }))
+            };
+          })
             .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
           setClients(clientList);

@@ -48,8 +48,9 @@ export default function Dashboard() {
       (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const clientList = Object.entries(data as Record<string, unknown>)
-            .map(([id, clientData]: any) => ({
+          const clientList = Object.entries(data || {}).map((entry: any) => {
+            const [id, clientData] = entry;
+            return {
               id,
               name: clientData.name as string || 'Sin nombre',
               folder: clientData.folder as string || '',
@@ -62,7 +63,8 @@ export default function Dashboard() {
               price: (clientData.price as number) || 0,
               blocked: (clientData.blocked as boolean) || false,
               createdAt: (clientData.createdAt as number) || Date.now(),
-            }))
+            };
+          })
             .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           setClients(clientList);
         } else {
